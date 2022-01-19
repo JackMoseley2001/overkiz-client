@@ -356,7 +356,7 @@ export default class OverkizClient extends EventEmitter {
                     }
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Polling error -', error);
             if (
                 this.listenerId === null &&
