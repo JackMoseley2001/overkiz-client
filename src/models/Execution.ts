@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
 import Action from './Action';
+import { EventEmitter } from 'events';
 
 export enum ExecutionState {
     INITIALIZED = 'INITIALIZED',
@@ -8,7 +8,7 @@ export enum ExecutionState {
     IN_PROGRESS = 'IN_PROGRESS',
     COMPLETED = 'COMPLETED',
     FAILED = 'FAILED',
-    TIMED_OUT = 'TIMED_OUT'
+    TIMED_OUT = 'TIMED_OUT',
 }
 
 export class ExecutionError extends Error {
@@ -33,8 +33,6 @@ export interface ExecutionStateEvent {
 }
 
 export default class Execution extends EventEmitter {
-    private timeout;
-
     public actions: Action[] = [];
     public metadata = null;
 
@@ -49,11 +47,13 @@ export default class Execution extends EventEmitter {
         this.actions.push(action);
     }
 
-    onStateUpdate(state, event) {
+    onStateUpdate(state: ExecutionState, event: Record<string, any> | null) {
         this.emit('update', state, event);
-        if (event.failureType && event.failedCommands) {
+        if (event?.failureType && event?.failedCommands) {
             this.actions.forEach((action) => {
-                const failure = event.failedCommands.find((c) => c.deviceURL === action.deviceURL);
+                const failure = event.failedCommands.find(
+                    (c) => c.deviceURL === action.deviceURL,
+                );
                 if (failure) {
                     action.emit('update', ExecutionState.FAILED, failure);
                 } else {
@@ -61,7 +61,9 @@ export default class Execution extends EventEmitter {
                 }
             });
         } else {
-            this.actions.forEach((action) => action.emit('update', state, event));
+            this.actions.forEach((action) =>
+                action.emit('update', state, event),
+            );
         }
-    } x
+    }
 }

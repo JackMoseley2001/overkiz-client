@@ -1,27 +1,37 @@
-import { EventEmitter } from 'events';
 import { Device, ExecutionState, Location } from '.';
-import ActionGroup from './models/ActionGroup';
-import { State } from './models/Device';
 import Execution, { ExecutionError } from './models/Execution';
 import RestClient, { ApiEndpoint, JWTEndpoint } from './RestClient';
+
+import ActionGroup from './models/ActionGroup';
+import { EventEmitter } from 'events';
+import { State } from './models/Device';
 
 export let logger;
 
 const EXEC_TIMEOUT = 2 * 60 * 1000;
 
-
 const endpoints = {
-    tahoma: new ApiEndpoint('https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI'),
-    tahoma_switch: new ApiEndpoint('https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI'),
-    connexoon: new ApiEndpoint('https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI'),
-    connexoon_rts: new ApiEndpoint('https://ha201-1.overkiz.com/enduser-mobile-web/enduserAPI'),
+    tahoma: new ApiEndpoint(
+        'https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI',
+    ),
+    tahoma_switch: new ApiEndpoint(
+        'https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI',
+    ),
+    connexoon: new ApiEndpoint(
+        'https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI',
+    ),
+    connexoon_rts: new ApiEndpoint(
+        'https://ha201-1.overkiz.com/enduser-mobile-web/enduserAPI',
+    ),
     cozytouch: new JWTEndpoint(
         'https://ha110-1.overkiz.com/enduser-mobile-web/enduserAPI',
         'https://api.groupe-atlantic.com/token',
         'https://api.groupe-atlantic.com/gacoma/gacomawcfservice/accounts/jwt',
         'czduc0RZZXdWbjVGbVV4UmlYN1pVSUM3ZFI4YTphSDEzOXZmbzA1ZGdqeDJkSFVSQkFTbmhCRW9h',
     ),
-    rexel: new ApiEndpoint('https://ha112-1.overkiz.com/enduser-mobile-web/enduserAPI'),
+    rexel: new ApiEndpoint(
+        'https://ha112-1.overkiz.com/enduser-mobile-web/enduserAPI',
+    ),
     debug: new ApiEndpoint('https://dev.duboc.pro/api/overkiz'),
 };
 
@@ -48,7 +58,9 @@ export default class OverkizClient extends EventEmitter {
         super();
         logger = Object.assign({}, log);
         logger.debug = (...args) => {
-            config['debug'] ? log.info('\x1b[90m', ...args) : log.debug(...args);
+            config['debug']
+                ? log.info('\x1b[90m', ...args)
+                : log.debug(...args);
         };
 
         // Default values
@@ -64,8 +76,11 @@ export default class OverkizClient extends EventEmitter {
         if (!apiEndpoint) {
             throw new Error('Invalid service name: ' + this.service);
         }
-        this.restClient = new RestClient(config['user'], config['password'], apiEndpoint);
-
+        this.restClient = new RestClient(
+            config['user'],
+            config['password'],
+            apiEndpoint,
+        );
 
         this.listenerId = null;
 
@@ -92,7 +107,9 @@ export default class OverkizClient extends EventEmitter {
         let lastMainDevice: Device | null = null;
         let lastDevice: Device | null = null;
         const physicalDevices = new Array<Device>();
-        const devices = (await this.restClient.get('/setup/devices')).map((device) => Object.assign(new Device(), device));
+        const devices = (await this.restClient.get('/setup/devices')).map(
+            (device) => Object.assign(new Device(), device),
+        );
         devices.forEach((device) => {
             if (this.devices[device.deviceURL]) {
                 //Object.assign(this.devices[device.deviceURL], device);
@@ -106,7 +123,10 @@ export default class OverkizClient extends EventEmitter {
             } else {
                 if (lastDevice !== null && device.isSensorOf(lastDevice)) {
                     lastDevice.addSensor(device);
-                } else if (lastMainDevice !== null && device.isSensorOf(lastMainDevice)) {
+                } else if (
+                    lastMainDevice !== null &&
+                    device.isSensorOf(lastMainDevice)
+                ) {
                     lastMainDevice.addSensor(device);
                 } else {
                     lastDevice = device;
@@ -119,11 +139,13 @@ export default class OverkizClient extends EventEmitter {
     }
 
     public async getSetupLocation(): Promise<Location> {
-        return await this.restClient.get('/setup/location') as Location;
+        return (await this.restClient.get('/setup/location')) as Location;
     }
 
     public async getActionGroups(): Promise<Array<ActionGroup>> {
-        return this.restClient.get('/actionGroups').then((result) => result.map((data) => data as ActionGroup));
+        return this.restClient
+            .get('/actionGroups')
+            .then((result) => result.map((data) => data as ActionGroup));
     }
 
     private async registerListener() {
@@ -137,7 +159,9 @@ export default class OverkizClient extends EventEmitter {
     private async unregisterListener() {
         if (this.listenerId !== null) {
             //logger.debug('Unregistering event listener...');
-            await this.restClient.post('/events/' + this.listenerId + '/unregister');
+            await this.restClient.post(
+                '/events/' + this.listenerId + '/unregister',
+            );
             this.listenerId = null;
         }
     }
@@ -156,8 +180,15 @@ export default class OverkizClient extends EventEmitter {
     }
 
     async refreshDeviceStates(deviceURL: string) {
-        await this.restClient.post('/setup/devices/' + encodeURIComponent(deviceURL) + '/states/refresh');
-        if (this.eventPollingPeriod > this.execPollingPeriod || this.listenerId === null) {
+        await this.restClient.post(
+            '/setup/devices/' +
+                encodeURIComponent(deviceURL) +
+                '/states/refresh',
+        );
+        if (
+            this.eventPollingPeriod > this.execPollingPeriod ||
+            this.listenerId === null
+        ) {
             await this.delay(2 * 1000); // Wait for device radio refresh
             const states = await this.getStates(deviceURL);
             const device = this.devices[deviceURL];
@@ -169,12 +200,19 @@ export default class OverkizClient extends EventEmitter {
     }
 
     async getState(deviceURL, state) {
-        const data = await this.restClient.get('/setup/devices/' + encodeURIComponent(deviceURL) + '/states/' + encodeURIComponent(state));
+        const data = await this.restClient.get(
+            '/setup/devices/' +
+                encodeURIComponent(deviceURL) +
+                '/states/' +
+                encodeURIComponent(state),
+        );
         return data.value;
     }
 
     async getStates(deviceURL): Promise<Array<State>> {
-        const states = await this.restClient.get('/setup/devices/' + encodeURIComponent(deviceURL) + '/states');
+        const states = await this.restClient.get(
+            '/setup/devices/' + encodeURIComponent(deviceURL) + '/states',
+        );
         return states;
     }
 
@@ -221,7 +259,9 @@ export default class OverkizClient extends EventEmitter {
     }
 
     async setDeviceName(deviceURL, label) {
-        await this.restClient.put(`/setup/devices/${encodeURIComponent(deviceURL)}/${label}`);
+        await this.restClient.put(
+            `/setup/devices/${encodeURIComponent(deviceURL)}/${label}`,
+        );
     }
 
     private setRefreshPollingPeriod(period: number) {
@@ -231,7 +271,10 @@ export default class OverkizClient extends EventEmitter {
             this.refreshPollingId = null;
         }
         if (period > 0) {
-            this.refreshPollingId = setInterval(this.refreshTask.bind(this), period * 1000);
+            this.refreshPollingId = setInterval(
+                this.refreshTask.bind(this),
+                period * 1000,
+            );
         }
     }
 
@@ -246,8 +289,13 @@ export default class OverkizClient extends EventEmitter {
             }
 
             if (period > 0) {
-                logger.debug('Change event polling period to ' + period + ' sec');
-                this.eventPollingId = setInterval(this.pollingTask.bind(this), period * 1000);
+                logger.debug(
+                    'Change event polling period to ' + period + ' sec',
+                );
+                this.eventPollingId = setInterval(
+                    this.pollingTask.bind(this),
+                    period * 1000,
+                );
             } else {
                 logger.debug('Disable event polling');
             }
@@ -264,7 +312,10 @@ export default class OverkizClient extends EventEmitter {
     }
 
     private async pollingTask() {
-        if (this.eventPollingPeriod !== this.pollingPeriod && !this.hasExecution()) {
+        if (
+            this.eventPollingPeriod !== this.pollingPeriod &&
+            !this.hasExecution()
+        ) {
             // Restore default polling frequency if no more execution in progress
             this.setEventPollingPeriod(this.pollingPeriod);
         } else if (!this.fetchLock) {
@@ -279,12 +330,14 @@ export default class OverkizClient extends EventEmitter {
         try {
             await this.registerListener();
             //logger.debug('Polling events...');
-            const data = await this.restClient.post('/events/' + this.listenerId + '/fetch');
+            const data = await this.restClient.post(
+                '/events/' + this.listenerId + '/fetch',
+            );
             for (const event of data) {
                 //logger.log(event);
                 if (event.name === 'DeviceStateChangedEvent') {
                     const device = this.devices[event.deviceURL];
-                    event.deviceStates.forEach(fresh => {
+                    event.deviceStates.forEach((fresh) => {
                         const state = device.getState(fresh.name);
                         if (state) {
                             state.value = fresh.value;
@@ -303,9 +356,13 @@ export default class OverkizClient extends EventEmitter {
                     }
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             logger.error('Polling error -', error);
-            if (this.listenerId === null && (error.includes('NOT_REGISTERED') || error.includes('UNSPECIFIED_ERROR'))) {
+            if (
+                this.listenerId === null &&
+                (error.includes('NOT_REGISTERED') ||
+                    error.includes('UNSPECIFIED_ERROR'))
+            ) {
                 this.listenerId = null;
             }
             // Will lock the poller for 10 sec in case of error
@@ -314,6 +371,6 @@ export default class OverkizClient extends EventEmitter {
     }
 
     private async delay(duration) {
-        return new Promise(resolve => setTimeout(resolve, duration));
+        return new Promise((resolve) => setTimeout(resolve, duration));
     }
 }
